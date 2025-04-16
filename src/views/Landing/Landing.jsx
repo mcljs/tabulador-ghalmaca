@@ -1,3 +1,4 @@
+
 import React, {
   useCallback,
   useEffect,
@@ -22,8 +23,8 @@ import MoneyIcon from '@/components/icons/MoneyIcon';
 export default function Hero() {
   const { showSpinner, hideSpinner } = useSpinner();
   const [distancia, setDistancia] = useState(0);
-  // Primero definimos tipoPaquete y luego peso
-  const [tipoPaquete, setTipoPaquete] = useState('sobre'); // 'sobre' o 'paquete'
+
+  const [tipoPaquete, setTipoPaquete] = useState('sobre'); 
   const [peso, setPeso] = useState(tipoPaquete === 'sobre' ? 0.5 : 1);
   const [tipoArticulo, setTipoArticulo] = useState('Documentos');
   const [valorDeclarado, setValorDeclarado] = useState(0);
@@ -309,6 +310,16 @@ export default function Hero() {
     return false;
   };
 
+  // Formatear tipo de vehículo para que sea más legible
+  const formatVehicleType = (vehicleType) => {
+    if (!vehicleType) return '';
+    
+    // Reemplazar guiones bajos por espacios y convertir a Title Case
+    return vehicleType.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
 
   return (
     <>
@@ -378,13 +389,29 @@ export default function Hero() {
                     </div>
                     <div>
                       <dt className="font-medium text-gray-700">Vehículo Asignado</dt>
-                      <dd className="text-gray-600">{resultData?.tipoVehiculo?.replace("_", " ")}</dd>
+                      <dd className="text-gray-600">{formatVehicleType(resultData?.tipoVehiculo)}</dd>
                     </div>
                   </>
                 )}
+                {/* Nuevos campos para peajes */}
+                <div>
+                  <dt className="font-medium text-gray-700">Cantidad de Peajes</dt>
+                  <dd className="text-gray-600">{resultData?.cantidadPeajes || 0}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-700">Costo por Peaje</dt>
+                  <dd className="text-gray-600">${resultData?.costoPeaje?.toFixed(2) || '0.00'}</dd>
+                </div>
               </div>
             </div>
             <dl className="space-y-4 border-t border-gray-200 pt-6 mt-6 text-sm">
+              {/* Costo de peajes */}
+              <div className="flex justify-between">
+                <dt className="font-medium text-gray-900">Total Peajes</dt>
+                <dd className="text-gray-700">
+                  ${resultData?.totalPeaje?.toFixed(2) || '0.00'}
+                </dd>
+              </div>
               <div className="flex justify-between">
                 <dt className="font-medium text-gray-900">Flete</dt>
                 <dd className="text-gray-700">
