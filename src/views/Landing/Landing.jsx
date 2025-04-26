@@ -1,4 +1,3 @@
-
 import React, {
   useCallback,
   useEffect,
@@ -393,25 +392,9 @@ export default function Hero() {
                     </div>
                   </>
                 )}
-                {/* Nuevos campos para peajes */}
-                <div>
-                  <dt className="font-medium text-gray-700">Cantidad de Peajes</dt>
-                  <dd className="text-gray-600">{resultData?.cantidadPeajes || 0}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Costo por Peaje</dt>
-                  <dd className="text-gray-600">${resultData?.costoPeaje?.toFixed(2) || '0.00'}</dd>
-                </div>
               </div>
             </div>
             <dl className="space-y-4 border-t border-gray-200 pt-6 mt-6 text-sm">
-              {/* Costo de peajes */}
-              <div className="flex justify-between">
-                <dt className="font-medium text-gray-900">Total Peajes</dt>
-                <dd className="text-gray-700">
-                  ${resultData?.totalPeaje?.toFixed(2) || '0.00'}
-                </dd>
-              </div>
               <div className="flex justify-between">
                 <dt className="font-medium text-gray-900">Flete</dt>
                 <dd className="text-gray-700">
@@ -458,6 +441,14 @@ export default function Hero() {
                   ${resultData?.totalAPagar?.toFixed(2)}
                 </dd>
               </div>
+              
+              {/* Nota para envíos Express */}
+              {resultData?.tipoEnvio === 'EXPRESS' && (
+                <div className="mt-2 text-xs text-blue-600 italic">
+                  Los precios expresados en el envío express pueden cambiar sin previo aviso, un agente de ventas se contactará para mayor información y cálculo exacto del envío.
+                </div>
+              )}
+              
               {user ? (
                 <button
                   type="button"
@@ -704,7 +695,9 @@ export default function Hero() {
 
               {directionsResponse && (
                 <div className="mt-2 flex justify-between text-sm">
-                  <span className="text-gray-600">Distancia: {routeDistance.toFixed(2)} km</span>
+                  <span className="text-gray-600">
+                    Distancia: {routeDistance.toFixed(2)} km
+                  </span>
                   <button
                     className="text-primary hover:underline focus:outline-none"
                     onClick={clearRoute}
@@ -721,112 +714,113 @@ export default function Hero() {
               <div className="space-y-6">
                 {/* El campo de peso ahora se maneja diferente según el tipo de paquete */}
                 {tipoPaquete === 'paquete' && (
-           <div>
-           <label
-             htmlFor="peso"
-             className="block text-sm font-medium text-gray-700"
-           >
-             Peso del paquete (kg)
-           </label>
-           <input
-             id="peso"
-             name="peso"
-             type="number"
-             min="1"
-             onChange={(e) => setPeso(e.target.value)}
-             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-           />
-         </div>
-)}
+                  <div>
+                    <label
+                      htmlFor="peso"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Peso del paquete (kg)
+                    </label>
+                    <input
+                      id="peso"
+                      name="peso"
+                      type="number"
+                      min="1"
+                      value={peso}
+                      onChange={(e) => setPeso(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                    />
+                  </div>
+                )}
 
-                {/* Campos para dimensiones (solo visibles si es un paquete) */}
+{/* Campos para dimensiones (solo visibles si es un paquete) */}
                 {tipoPaquete === 'paquete' && (
-  <div>
-    <h4 className="text-sm font-medium text-gray-700 mb-3">Dimensiones (cm)</h4>
-    <div className="grid grid-cols-3 gap-4">
-      <div>
-        <label htmlFor="ancho" className="block text-sm text-gray-700">
-          Ancho
-        </label>
-        <input
-          id="ancho"
-          name="ancho"
-          type="number"
-          min="1"
-          value={ancho}
-          onChange={(e) => setAncho(e.target.value)}
-          onBlur={(e) => {
-            if (e.target.value === '' || Number(e.target.value) < 1) {
-              setAncho(1);
-            }
-          }}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-        />
-      </div>
-      <div>
-        <label htmlFor="alto" className="block text-sm text-gray-700">
-          Alto
-        </label>
-        <input
-          id="alto"
-          name="alto"
-          type="number"
-          min="1"
-          value={alto}
-          onChange={(e) => setAlto(e.target.value)}
-          onBlur={(e) => {
-            if (e.target.value === '' || Number(e.target.value) < 1) {
-              setAlto(1);
-            }
-          }}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-        />
-      </div>
-      <div>
-        <label htmlFor="largo" className="block text-sm text-gray-700">
-          Largo
-        </label>
-        <input
-          id="largo"
-          name="largo"
-          type="number"
-          min="1"
-          value={largo}
-          onChange={(e) => setLargo(e.target.value)}
-          onBlur={(e) => {
-            if (e.target.value === '' || Number(e.target.value) < 1) {
-              setLargo(1);
-            }
-          }}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-        />
-      </div>
-    </div>
-  </div>
-)}
-            <div>
-  <label
-    htmlFor="valor-declarado"
-    className="block text-sm font-medium text-gray-700"
-  >
-    Valor declarado (USD)
-  </label>
-  <input
-    id="valor-declarado"
-    name="valor-declarado"
-    type="number"
-    min="1"
-    required
-    value={valorDeclarado}
-    onChange={(e) => setValorDeclarado(e.target.value)}
-    onBlur={(e) => {
-      if (e.target.value === '' || Number(e.target.value) < 1) {
-        setValorDeclarado(1);
-      }
-    }}
-    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-  />
-</div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Dimensiones (cm)</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label htmlFor="ancho" className="block text-sm text-gray-700">
+                          Ancho
+                        </label>
+                        <input
+                          id="ancho"
+                          name="ancho"
+                          type="number"
+                          min="1"
+                          value={ancho}
+                          onChange={(e) => setAncho(e.target.value)}
+                          onBlur={(e) => {
+                            if (e.target.value === '' || Number(e.target.value) < 1) {
+                              setAncho(1);
+                            }
+                          }}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="alto" className="block text-sm text-gray-700">
+                          Alto
+                        </label>
+                        <input
+                          id="alto"
+                          name="alto"
+                          type="number"
+                          min="1"
+                          value={alto}
+                          onChange={(e) => setAlto(e.target.value)}
+                          onBlur={(e) => {
+                            if (e.target.value === '' || Number(e.target.value) < 1) {
+                              setAlto(1);
+                            }
+                          }}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="largo" className="block text-sm text-gray-700">
+                          Largo
+                        </label>
+                        <input
+                          id="largo"
+                          name="largo"
+                          type="number"
+                          min="1"
+                          value={largo}
+                          onChange={(e) => setLargo(e.target.value)}
+                          onBlur={(e) => {
+                            if (e.target.value === '' || Number(e.target.value) < 1) {
+                              setLargo(1);
+                            }
+                          }}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label
+                    htmlFor="valor-declarado"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Valor declarado (USD)
+                  </label>
+                  <input
+                    id="valor-declarado"
+                    name="valor-declarado"
+                    type="number"
+                    min="1"
+                    required
+                    value={valorDeclarado}
+                    onChange={(e) => setValorDeclarado(e.target.value)}
+                    onBlur={(e) => {
+                      if (e.target.value === '' || Number(e.target.value) < 1) {
+                        setValorDeclarado(1);
+                      }
+                    }}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                  />
+                </div>
 
                 <div>
                   <button

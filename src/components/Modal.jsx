@@ -3,87 +3,118 @@ import { Dialog, Transition } from '@headlessui/react';
 import clsx from 'clsx';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
+const sizes = {
+  sm: 'sm:max-w-sm',
+  md: 'sm:max-w-md',
+  lg: 'sm:max-w-lg',
+  xl: 'sm:max-w-xl',
+  '2xl': 'sm:max-w-2xl',
+  '3xl': 'sm:max-w-3xl',
+  '4xl': 'sm:max-w-4xl',
+  '5xl': 'sm:max-w-5xl',
+};
+
 function Modal({
   open,
   setOpen,
-  background = true,
-  allowClickToClose = false,
+  allowClickToClose = true,
   children,
-  size = 'md',
-  flat,
-  closeButton,
+  size = 'lg',
   className,
+  title,
+  description,
+  ...props
 }) {
+  const onClose = allowClickToClose ? () => setOpen(false) : () => {};
+
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog
-        as="div"
-        className="relative z-50"
-        onClose={allowClickToClose ? setOpen : () => {}}
-      >
+    <Transition.Root show={open} as={Fragment} {...props}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        {/* Backdrop with blur effect */}
         <Transition.Child
           as={Fragment}
-          enter="ease-out duration-300"
+          enter="ease-out duration-100"
           enterFrom="opacity-0"
           enterTo="opacity-100"
-          leave="ease-in duration-200"
+          leave="ease-in duration-100"
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-slate-900 bg-opacity-90 transition-opacity" />
+          <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm transition-opacity" />
         </Transition.Child>
 
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          {closeButton && (
-            <button
-              onClick={() => setOpen(false)}
-              className="fixed left-2 top-2 z-50 md:left-4 md:top-4 bg-white"
-            >
-              <XMarkIcon />
-            </button>
-          )}
-                   
-          <div className="flex min-h-full items-center justify-center text-center sm:items-center sm:p-0">
+        <div className="fixed inset-0 w-screen overflow-y-auto pt-6 sm:pt-0">
+          <div className="grid min-h-full grid-rows-[1fr_auto] justify-items-center sm:grid-rows-[1fr_auto_3fr] sm:p-4">
             <Transition.Child
               as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enter="ease-out duration-100"
+              enterFrom="opacity-0 translate-y-12 sm:translate-y-0 sm:scale-95"
               enterTo="opacity-100 translate-y-0 sm:scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              leave="ease-in duration-100"
+              leaveFrom="opacity-100 translate-y-0"
+              leaveTo="opacity-0 translate-y-12 sm:translate-y-0"
             >
               <Dialog.Panel
                 className={clsx(
-                  'align-center inline-block transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:align-middle',
-                  {
-                    'mt-12': closeButton,
-                    'm-8 p-10': !flat,
-                    'bg-slate-50': background === true,
-                    'max-w-md md:w-full md:max-w-sm': size === 'sm',
-                    'max-w-md md:w-full md:max-w-md': size === 'md',
-                    'max-w-md md:w-full md:max-w-lg': size === 'lg',
-                    'max-w-md md:w-full md:max-w-xl': size === 'xl',
-                    'max-w-md md:w-full md:max-w-2xl': size === '2xl',
-                    'max-w-md md:w-full md:max-w-3xl': size === '3xl',
-                  },
                   className,
+                  sizes[size],
+                  'row-start-2 w-full min-w-0 rounded-t-3xl p-8 shadow-lg sm:mb-auto sm:rounded-2xl bg-white border border-slate-200'
                 )}
               >
-                      <button
-              onClick={() => setOpen(false)}
-              className="absolute left-2 top-2 z-50 md:left-4 md:top-4"
-              type="button"
-            >
-              <XMarkIcon className="h-6 w-6 text-black" />
-            </button>
-                {children}
+                {/* Close button */}
+                <button
+                  onClick={() => setOpen(false)}
+                  className="absolute right-4 top-4 text-slate-900 hover:text-slate-800 transition-colors bg-white p-2 rounded-full"
+                  type="button"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+
+                {/* Modal content */}
+                {(title || description) ? (
+                  <>
+                    {title && (
+                      <Dialog.Title className="text-balance text-lg/6 font-semibold sm:text-base/6 text-slate-900">
+                        {title}
+                      </Dialog.Title>
+                    )}
+                    
+                    {description && (
+                      <Dialog.Description className="mt-2 text-pretty text-slate-700">
+                        {description}
+                      </Dialog.Description>
+                    )}
+                    
+                    <div className="mt-6">
+                      {children}
+                    </div>
+                  </>
+                ) : (
+                  children
+                )}
               </Dialog.Panel>
             </Transition.Child>
           </div>
         </div>
       </Dialog>
     </Transition.Root>
+  );
+}
+
+// Additional components for easy composition
+export function ModalBody({ className, ...props }) {
+  return <div {...props} className={clsx(className, 'mt-6')} />;
+}
+
+export function ModalActions({ className, ...props }) {
+  return (
+    <div
+      {...props}
+      className={clsx(
+        className,
+        'mt-8 flex flex-col-reverse items-center justify-end gap-3 *:w-full sm:flex-row sm:*:w-auto'
+      )}
+    />
   );
 }
 
