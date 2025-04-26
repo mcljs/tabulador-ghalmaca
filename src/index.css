@@ -20,6 +20,22 @@ body{
   background-color: #f1f5f9;
 }
 
+body > div[id^="react-hot-toast"] {
+  position: fixed !important;
+  z-index: 999999 !important; 
+}
+
+/* Target toast items */
+body > div[id^="react-hot-toast"] > div > div {
+  z-index: 999999 !important;
+}
+
+/* Make sure they're not filtered by any backdrop */
+body > div[id^="react-hot-toast"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 
 
 

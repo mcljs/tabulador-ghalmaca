@@ -18,6 +18,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { CheckIcon, InformationCircleIcon, TruckIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import MoneyIcon from '@/components/icons/MoneyIcon';
+import { Dialog } from '@/components/ui/dialog';
 
 export default function Hero() {
   const { showSpinner, hideSpinner } = useSpinner();
@@ -322,157 +323,164 @@ export default function Hero() {
 
   return (
     <>
-      <Modal size="lg" open={ModalResult} setOpen={setModalResult}>
-        {avisoEnvio ? (
+      <Dialog size="lg" open={ModalResult} onClose={setModalResult}>
+{avisoEnvio ? (
+  <div className="p-4 sm:p-6">
+    <div className="mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-green-100">
+      <CheckIcon
+        className="h-7 w-7 sm:h-8 sm:w-8 text-green-600"
+        aria-hidden="true"
+      />
+    </div>
+    <div className="mt-3 sm:mt-4 text-center">
+      <h3 className="text-base sm:text-lg font-semibold leading-6 text-gray-900">
+        Gracias por confiar en nosotros
+      </h3>
+      <div className="mt-2 sm:mt-3">
+        <p className="text-sm sm:text-base text-gray-600">
+          En breve nos pondremos en contacto contigo para coordinar el
+          pago del envío
+        </p>
+      </div>
+    </div>
+    <div className="mt-4 sm:mt-6">
+      <button
+        type="button"
+        className="w-full justify-center rounded-md bg-indigo-600 px-4 py-2 sm:py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
+        onClick={() => returnModal()}
+      >
+        Regresar
+      </button>
+    </div>
+  </div>
+) : (
+  <div className="p-4 sm:p-6">
+    <h1 className="text-center text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Detalles del Envío</h1>
+    
+    {/* Información del Envío */}
+    <div className="bg-gray-50 p-4 sm:p-5 rounded-lg shadow-sm">
+      <h2 className="text-base sm:text-lg font-medium text-gray-800 mb-2 sm:mb-3">Información del Envío</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-3 sm:gap-y-4 text-sm sm:text-base">
+        <div className="flex flex-col">
+          <dt className="font-medium text-gray-700">Tipo de Envío</dt>
+          <dd className="text-gray-600">{resultData?.tipoEnvio === 'EXPRESS' ? 'Express' : 'Normal'}</dd>
+        </div>
+        <div className="flex flex-col">
+          <dt className="font-medium text-gray-700">Tipo de Artículo</dt>
+          <dd className="text-gray-600">{resultData?.tipoArticulo}</dd>
+        </div>
+        <div className="flex flex-col">
+          <dt className="font-medium text-gray-700">Tipo</dt>
+          <dd className="text-gray-600">{resultData?.esSobre ? 'Sobre' : 'Paquete'}</dd>
+        </div>
+        <div className="flex flex-col">
+          <dt className="font-medium text-gray-700">Peso</dt>
+          <dd className="text-gray-600">{resultData?.peso} kg</dd>
+        </div>
+        <div className="flex flex-col">
+          <dt className="font-medium text-gray-700">Distancia</dt>
+          <dd className="text-gray-600">{resultData?.distancia.toFixed(2)} km</dd>
+        </div>
+        {!resultData?.esSobre && (
           <>
-            <div>
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                <CheckIcon
-                  className="h-6 w-6 text-green-600"
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="mt-3 text-center sm:mt-5">
-                <h3 className="text-base font-semibold leading-6 text-gray-900">
-                  Gracias por confiar en nosotros
-                </h3>
-                <div className="mt-2">
-                  <p className="text-sm text-gray-500">
-                    En breve nos pondremos en contacto contigo para coordinar el
-                    pago del envío
-                  </p>
-                </div>
-              </div>
+            <div className="flex flex-col">
+              <dt className="font-medium text-gray-700">Volumen</dt>
+              <dd className="text-gray-600">{resultData?.volumen?.toFixed(4)} m³</dd>
             </div>
-            <div className="mt-5 sm:mt-6">
-              <button
-                type="button"
-                className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                onClick={() => returnModal()}
-              >
-                Regresar
-              </button>
+            <div className="flex flex-col">
+              <dt className="font-medium text-gray-700">Vehículo Asignado</dt>
+              <dd className="text-gray-600">{formatVehicleType(resultData?.tipoVehiculo)}</dd>
             </div>
-          </>
-        ) : (
-          <>
-            <h1 className="text-center text-xl font-bold">Detalles del Envío</h1>
-            <div className="mt-4 bg-gray-50 p-4 rounded-md">
-              <h2 className="text-lg font-medium text-gray-700">Información del Envío</h2>
-              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <dt className="font-medium text-gray-700">Tipo de Envío</dt>
-                  <dd className="text-gray-600">{resultData?.tipoEnvio === 'EXPRESS' ? 'Express' : 'Normal'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Tipo de Artículo</dt>
-                  <dd className="text-gray-600">{resultData?.tipoArticulo}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Tipo</dt>
-                  <dd className="text-gray-600">{resultData?.esSobre ? 'Sobre' : 'Paquete'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Peso</dt>
-                  <dd className="text-gray-600">{resultData?.peso} kg</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Distancia</dt>
-                  <dd className="text-gray-600">{resultData?.distancia.toFixed(2)} km</dd>
-                </div>
-                {!resultData?.esSobre && (
-                  <>
-                    <div>
-                      <dt className="font-medium text-gray-700">Volumen</dt>
-                      <dd className="text-gray-600">{resultData?.volumen?.toFixed(4)} m³</dd>
-                    </div>
-                    <div>
-                      <dt className="font-medium text-gray-700">Vehículo Asignado</dt>
-                      <dd className="text-gray-600">{formatVehicleType(resultData?.tipoVehiculo)}</dd>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-            <dl className="space-y-4 border-t border-gray-200 pt-6 mt-6 text-sm">
-              <div className="flex justify-between">
-                <dt className="font-medium text-gray-900">Flete</dt>
-                <dd className="text-gray-700">
-                  ${resultData?.flete?.toFixed(2)}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-medium text-gray-900">
-                  Protección de Encomienda
-                </dt>
-                <dd className="text-gray-700">
-                  ${resultData?.proteccionEncomienda?.toFixed(2)}
-                </dd>
-              </div>
-              {resultData?.costoHospedaje > 0 && (
-                <div className="flex justify-between">
-                  <dt className="font-medium text-gray-900">Hospedaje</dt>
-                  <dd className="text-gray-700">
-                    ${resultData?.costoHospedaje?.toFixed(2)}
-                  </dd>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <dt className="font-medium text-gray-900">Subtotal</dt>
-                <dd className="text-gray-700">
-                  ${resultData?.subtotal?.toFixed(2)}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-medium text-gray-900">IVA</dt>
-                <dd className="text-gray-700">
-                  ${resultData?.iva?.toFixed(2)}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-medium text-gray-900">Franqueo Postal</dt>
-                <dd className="text-gray-700">
-                  ${resultData?.franqueoPostal?.toFixed(2)}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-bold text-gray-900">Total a Pagar</dt>
-                <dd className="text-gray-900 font-bold">
-                  ${resultData?.totalAPagar?.toFixed(2)}
-                </dd>
-              </div>
-              
-              {/* Nota para envíos Express */}
-              {resultData?.tipoEnvio === 'EXPRESS' && (
-                <div className="mt-2 text-xs text-blue-600 italic">
-                  Los precios expresados en el envío express pueden cambiar sin previo aviso, un agente de ventas se contactará para mayor información y cálculo exacto del envío.
-                </div>
-              )}
-              
-              {user ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    crearOrdenEnvio();
-                  }}
-                  className="w-full text-center rounded-md bg-blue-600 py-2 px-4 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
-                >
-                  Requerir Pago de Envío
-                </button>
-              ) : (
-                <Link
-                  type="button"
-                  href={`/register`}
-                  className="w-full text-center rounded-md bg-blue-600 py-2 px-4 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
-                >
-                  Registrate Para Pagar
-                </Link>
-              )}
-            </dl>
           </>
         )}
-      </Modal>
+      </div>
+    </div>
+    
+    {/* Detalle de Costos */}
+    <div className="mt-5 sm:mt-6 border-t border-gray-200 pt-5 sm:pt-6">
+      <h2 className="sr-only">Detalle de Costos</h2>
+      <dl className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+        <div className="flex justify-between items-center py-1 sm:py-2">
+          <dt className="font-medium text-gray-700">Flete</dt>
+          <dd className="text-gray-700 font-medium">
+            ${resultData?.flete?.toFixed(2)}
+          </dd>
+        </div>
+        <div className="flex justify-between items-center py-2">
+          <dt className="font-medium text-gray-700">
+            Protección de Encomienda
+          </dt>
+          <dd className="text-gray-700 font-medium">
+            ${resultData?.proteccionEncomienda?.toFixed(2)}
+          </dd>
+        </div>
+        {resultData?.costoHospedaje > 0 && (
+          <div className="flex justify-between items-center py-2">
+            <dt className="font-medium text-gray-700">Hospedaje</dt>
+            <dd className="text-gray-700 font-medium">
+              ${resultData?.costoHospedaje?.toFixed(2)}
+            </dd>
+          </div>
+        )}
+        <div className="flex justify-between items-center py-2">
+          <dt className="font-medium text-gray-700">Subtotal</dt>
+          <dd className="text-gray-700 font-medium">
+            ${resultData?.subtotal?.toFixed(2)}
+          </dd>
+        </div>
+        <div className="flex justify-between items-center py-2">
+          <dt className="font-medium text-gray-700">IVA</dt>
+          <dd className="text-gray-700 font-medium">
+            ${resultData?.iva?.toFixed(2)}
+          </dd>
+        </div>
+        <div className="flex justify-between items-center py-2">
+          <dt className="font-medium text-gray-700">Franqueo Postal</dt>
+          <dd className="text-gray-700 font-medium">
+            ${resultData?.franqueoPostal?.toFixed(2)}
+          </dd>
+        </div>
+        <div className="flex justify-between items-center py-2 sm:py-3 mt-1 border-t border-gray-200">
+          <dt className="font-bold text-gray-900 text-sm sm:text-base">Total a Pagar</dt>
+          <dd className="text-gray-900 font-bold text-sm sm:text-base">
+            ${resultData?.totalAPagar?.toFixed(2)}
+          </dd>
+        </div>
+      </dl>
+      
+      {/* Nota para envíos Express */}
+      {resultData?.tipoEnvio === 'EXPRESS' && (
+        <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-blue-50 rounded-md text-xs text-blue-700 italic">
+          Los precios expresados en el envío express pueden cambiar sin previo aviso, un agente de ventas se contactará para mayor información y cálculo exacto del envío.
+        </div>
+      )}
+      
+      {/* Botón de acción */}
+      <div className="mt-4 sm:mt-6">
+        {user ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              crearOrdenEnvio();
+            }}
+            className="w-full text-center rounded-md bg-blue-600 py-2 sm:py-3 px-4 text-sm sm:text-base text-white font-medium hover:bg-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shadow-sm"
+          >
+            Requerir Pago de Envío
+          </button>
+        ) : (
+          <Link
+            href={`/register`}
+            className="block w-full text-center rounded-md bg-blue-600 py-2 sm:py-3 px-4 text-sm sm:text-base text-white font-medium hover:bg-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shadow-sm"
+          >
+            Registrate Para Pagar
+          </Link>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+      </Dialog>
       <div className="relative isolate overflow-hidden bg-primary px-6 py-8 sm:py-5 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <div className="flex justify-center">
