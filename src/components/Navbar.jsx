@@ -12,11 +12,18 @@ export default function Navbar() {
 
   // Navigation items based on user role
   const navigation = [
-    user?.role === 'ADMIN' ? { name: 'Panel Config', href: '/panel-config' } : null,
+    user?.role === 'ADMIN'
+      ? { name: 'Panel Config', href: '/panel-config' }
+      : null,
     { name: 'Tabulador', href: '/' },
-    user?.role === 'ADMIN' ? { name: 'Panel Admin Envíos', href: '/panelAdmin' } : null,
+    user?.role === 'ADMIN'
+      ? { name: 'Panel Admin Envíos', href: '/panelAdmin' }
+      : null,
+          user?.role === 'ADMIN'
+      ? { name: 'Gestión de Usuarios', href: '/refresh-user-admin' }
+      : null,
     { name: 'Panel de Envío', href: '/panel-user' },
-  ].filter(item => item !== null);
+  ].filter((item) => item !== null);
 
   // Detect scroll for navbar effects
   useEffect(() => {
@@ -28,7 +35,7 @@ export default function Navbar() {
   }, []);
 
   return (
-    <motion.header 
+    <motion.header
       animate={{ y: 0 }}
       transition={{ type: 'spring', stiffness: 100, damping: 20 }}
       className={` top-0 w-full z-50 transition-all duration-300 bg-white/90`}
@@ -40,21 +47,18 @@ export default function Navbar() {
         {/* Logo */}
         <div className="flex lg:flex-1">
           <Link href="/" className="flex items-center">
-            <motion.div 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Image 
-                src="/logo.png" 
-                alt="GhalMaca Transporte" 
-                width={160} 
-                height={48} 
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Image
+                src="/logo.png"
+                alt="GhalMaca Transporte"
+                width={160}
+                height={48}
                 className="h-12 w-auto"
               />
             </motion.div>
           </Link>
         </div>
-        
+
         {/* Desktop Navigation */}
         <div className="hidden lg:flex lg:gap-x-8">
           {navigation.map((item) => (
@@ -73,12 +77,12 @@ export default function Navbar() {
             </motion.div>
           ))}
         </div>
-        
+
         {/* User Actions */}
         <div className="flex flex-1 items-center justify-end gap-x-6">
           {user ? (
             <>
-              <motion.span 
+              <motion.span
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="hidden lg:block text-sm font-medium text-primary"
@@ -123,7 +127,7 @@ export default function Navbar() {
             </>
           )}
         </div>
-        
+
         {/* Mobile menu button */}
         <div className="flex lg:hidden">
           <motion.button
@@ -152,11 +156,11 @@ export default function Navbar() {
             >
               <div className="flex items-center justify-between">
                 <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-                  <Image 
-                    src="/logo.png" 
-                    alt="GhalMaca Transporte" 
-                    width={140} 
-                    height={42} 
+                  <Image
+                    src="/logo.png"
+                    alt="GhalMaca Transporte"
+                    width={140}
+                    height={42}
                     className="h-10 w-auto"
                   />
                 </Link>
@@ -170,18 +174,20 @@ export default function Navbar() {
                   <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                 </motion.button>
               </div>
-              
+
               {user && (
                 <div className="mt-6 border-b border-gray-200 pb-4">
                   <p className="text-sm text-gray-500">Bienvenido</p>
-                  <p className="text-base font-medium text-primary">{user.firstName}</p>
+                  <p className="text-base font-medium text-primary">
+                    {user.firstName}
+                  </p>
                 </div>
               )}
-              
+
               <div className="mt-6 flow-root">
                 <div className="space-y-2 py-6">
                   {navigation.map((item) => (
-                    <motion.div 
+                    <motion.div
                       key={item.name}
                       whileHover={{ x: 4 }}
                       transition={{ type: 'spring', stiffness: 300 }}
@@ -196,7 +202,7 @@ export default function Navbar() {
                     </motion.div>
                   ))}
                 </div>
-                
+
                 {!user ? (
                   <div className="flex flex-col gap-3 mt-8">
                     <Link
