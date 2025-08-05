@@ -17,14 +17,63 @@ export default function panelAdmin() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
 
-  const getOrders = async () => {
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [loading, setLoading] = useState(false);
+
+  // Función para obtener órdenes con paginación
+  const getOrders = async (page = 1, limit = itemsPerPage) => {
     try {
-      const [ordersData, totalOrders] = await apiService.get('/envios/all');
+      setLoading(true);
+      const params = {
+        page,
+        limit,
+        ...(filterStatus && { status: filterStatus }),
+        ...(searchTracking && { trackingNumber: searchTracking }),
+      };
+      
+      const [ordersData, total] = await apiService.get('/envios/all', { params });
       setDataUser(ordersData);
-      console.log(ordersData, totalOrders);
+      setTotalOrders(total);
+      setCurrentPage(page);
+      
+      console.log(`📋 Página ${page}: ${ordersData.length} órdenes de ${total} total`);
     } catch (err) {
+      toast.error('Error al cargar las órdenes');
       console.error(err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Función para cambiar página
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= Math.ceil(totalOrders / itemsPerPage)) {
+      getOrders(newPage, itemsPerPage);
+    }
+  };
+
+  // Función para cambiar filtros (reinicia a página 1)
+  const handleFilterChange = () => {
+    getOrders(1, itemsPerPage);
+  };
+
+  // Función para búsqueda con debounce
+  const handleSearchChange = (e) => {
+    setSearchTracking(e.target.value);
+    // Buscar después de una pausa (debounce)
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(() => {
+      handleFilterChange();
+    }, 500);
+  };
+
+  // Función para filtro de status
+  const handleStatusFilterChange = (e) => {
+    setFilterStatus(e.target.value);
+    handleFilterChange();
   };
 
   const handleUpdateOrderStatus = async () => {
@@ -38,7 +87,7 @@ export default function panelAdmin() {
       console.log(response);
       toast.success('Estado actualizado correctamente');
       setOpen(false);
-      getOrders();
+      getOrders(currentPage, itemsPerPage); // Recargar página actual
     } catch (error) {
       toast.error('Error al actualizar el estado de la orden');
       console.error(error);
@@ -52,7 +101,7 @@ export default function panelAdmin() {
       await apiService.delete(`/envios/${selectedUser.id}`);
       toast.success('Orden eliminada con éxito');
       setOpen(false);
-      getOrders();
+      getOrders(currentPage, itemsPerPage); // Recargar página actual
     } catch (error) {
       toast.error('Error al eliminar la orden');
       console.error(error);
@@ -67,7 +116,7 @@ export default function panelAdmin() {
   };
 
   useEffect(() => {
-    getOrders();
+    getOrders(1, itemsPerPage);
   }, []);
 
   const handleEditClick = (user) => {
@@ -98,23 +147,23 @@ export default function panelAdmin() {
     }
   };
 
-  const filteredAndSortedDataUser = dataUser
-    .filter(
-      (order) =>
-        (filterStatus ? order.status === filterStatus : true) &&
-        (searchTracking ? order.trackingNumber.includes(searchTracking) : true),
-    )
-    .sort((a, b) => {
-      // Priorizar órdenes con pago pendiente de verificación
-      if (a.status === 'Pendiente de Verificación' && b.status !== 'Pendiente de Verificación') return -1;
-      if (a.status !== 'Pendiente de Verificación' && b.status === 'Pendiente de Verificación') return 1;
-      if (a.status === 'Finalizado' && b.status !== 'Finalizado') return 1;
-      if (a.status !== 'Finalizado' && b.status === 'Finalizado') return -1;
-      return new Date(b.createdAt) - new Date(a.createdAt); // Más recientes primero
-    });
+  // Calcular información de paginación
+  const totalPages = Math.ceil(totalOrders / itemsPerPage);
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalOrders);
 
   return (
     <>
+      {/* Loading indicator */}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-3 text-sm text-gray-600 text-center">Cargando órdenes...</p>
+          </div>
+        </div>
+      )}
+
       {/* Modal de detalles de la orden */}
       <Modal open={open} setOpen={setOpen}>
         {selectedUser && (
@@ -298,7 +347,7 @@ export default function panelAdmin() {
               Gestión de Órdenes de Envío
             </h1>
             <p className="mt-2 text-sm text-gray-700">
-              Lista de todas las órdenes de envío con información de pago.
+              Lista de todas las órdenes de envío con información de pago. Total: {totalOrders} órdenes
             </p>
           </div>
           <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
@@ -307,12 +356,12 @@ export default function panelAdmin() {
                 type="text"
                 placeholder="Buscar por Tracking"
                 value={searchTracking}
-                onChange={(e) => setSearchTracking(e.target.value)}
+                onChange={handleSearchChange}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
               />
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={handleStatusFilterChange}
                 className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
               >
                 <option value="">Todos los status</option>
@@ -361,7 +410,7 @@ export default function panelAdmin() {
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {filteredAndSortedDataUser.map((person, personIdx) => (
+                  {dataUser.map((person, personIdx) => (
                     <tr key={person.id} className={person.status === 'Pendiente de Verificación' ? 'bg-orange-50' : ''}>
                       <td className={classNames(
                         personIdx !== dataUser.length - 1 ? 'border-b border-gray-200' : '',
@@ -438,6 +487,103 @@ export default function panelAdmin() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Información y controles de paginación */}
+        <div className="mt-6 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+          <div className="flex flex-1 justify-between sm:hidden">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+          
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div className="flex items-center space-x-4">
+              <p className="text-sm text-gray-700">
+                Mostrando <span className="font-medium">{startItem}</span> a{' '}
+                <span className="font-medium">{endItem}</span> de{' '}
+                <span className="font-medium">{totalOrders}</span> resultados
+              </p>
+              
+              {/* Selector de elementos por página */}
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  const newLimit = parseInt(e.target.value);
+                  setItemsPerPage(newLimit);
+                  getOrders(1, newLimit);
+                }}
+                className="rounded-md border-gray-300 text-sm"
+              >
+                <option value={25}>25 por página</option>
+                <option value={50}>50 por página</option>
+                <option value={100}>100 por página</option>
+              </select>
+            </div>
+            
+            <div>
+              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                {/* Botón Anterior */}
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="sr-only">Anterior</span>
+                  ←
+                </button>
+                
+                {/* Números de página */}
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                        currentPage === pageNum
+                          ? 'z-10 bg-indigo-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
+                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                {/* Botón Siguiente */}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="sr-only">Siguiente</span>
+                  →
+                </button>
+              </nav>
             </div>
           </div>
         </div>
