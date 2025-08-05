@@ -19,11 +19,13 @@ import { CheckIcon, InformationCircleIcon, TruckIcon, DocumentIcon } from '@hero
 import Link from 'next/link';
 import MoneyIcon from '@/components/icons/MoneyIcon';
 import { Dialog } from '@/components/ui/dialog';
+import PaymentInfoModal from '@/components/PaymentInfoModal';
 
 export default function Hero() {
   const { showSpinner, hideSpinner } = useSpinner();
   const [distancia, setDistancia] = useState(0);
-
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [tipoPaquete, setTipoPaquete] = useState('sobre'); 
   const [peso, setPeso] = useState(tipoPaquete === 'sobre' ? 0.5 : 1);
   const [tipoArticulo, setTipoArticulo] = useState('Documentos');
@@ -235,40 +237,118 @@ export default function Hero() {
     }
   };
 
-  const crearOrdenEnvio = async () => {
-    showSpinner('Creando orden de envío...');
-    try {
-      // Incluir los nuevos campos en los datos de envío
-      const datosEnvio = {
-        ...resultData,
-        tipoArticulo: resultData.tipoArticulo,
-        ruteInitial: originAddress,
-        ruteFinish: destinationAddress,
-        tipoEnvio: resultData.tipoEnvio,
-        esSobre: resultData.esSobre,
-      };
+const convertFileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
 
-      // Añadir dimensiones solo si no es un sobre
-      if (!resultData.esSobre) {
-        datosEnvio.ancho = resultData.ancho;
-        datosEnvio.alto = resultData.alto;
-        datosEnvio.largo = resultData.largo;
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64 = reader.result;
+      const base64SizeKB = (base64.length * 0.75 / 1024).toFixed(0);
+      
+      console.log(`Base64 generado: ${base64SizeKB}KB`);
+      
+      if (base64.length > 8 * 1024 * 1024) { // 8MB límite para base64
+        reject(new Error('La imagen sigue siendo muy grande después de la compresión'));
+        return;
       }
+      
+      resolve(base64);
+    };
+    reader.onerror = error => reject(error);
+  });
+};
 
-      const response = await apiService.post(
-        '/envios/crearOrdenEnvio',
-        datosEnvio,
-      );
-      console.log(response);
-      toast.success('Orden de envío creada con éxito');
-      setAvisoEnvio(true);
-    } catch (error) {
-      console.log(error);
-      toast.error('Error al crear la orden de envío');
-    } finally {
-      hideSpinner();
+// Función para manejar la confirmación del pago (ACTUALIZADA)
+
+
+// Función SIMPLIFICADA para crear orden (ACTUALIZADA)
+const crearOrdenEnvio = async (paymentInfo = null) => {
+  setPaymentProcessing(true);
+  showSpinner('Creando orden de envío...');
+  
+  try {
+    // Incluir los nuevos campos en los datos de envío
+    const datosEnvio = {
+      ...resultData,
+      tipoArticulo: resultData.tipoArticulo,
+      ruteInitial: originAddress,
+      ruteFinish: destinationAddress,
+      tipoEnvio: resultData.tipoEnvio,
+      esSobre: resultData.esSobre,
+    };
+
+    // Añadir dimensiones solo si no es un sobre
+    if (!resultData.esSobre) {
+      datosEnvio.ancho = resultData.ancho;
+      datosEnvio.alto = resultData.alto;
+      datosEnvio.largo = resultData.largo;
     }
-  };
+
+    // Si hay información de pago, añadirla
+    if (paymentInfo) {
+      datosEnvio.infoPago = paymentInfo;
+    }
+
+    // ENVÍO SIMPLE - Sin FormData, solo JSON
+    const response = await apiService.post(
+      '/envios/crearOrdenEnvio',
+      datosEnvio
+    );
+
+    console.log(response);
+    toast.success('Orden de envío creada con éxito');
+    setShowPaymentModal(false);
+    setAvisoEnvio(true);
+    
+  } catch (error) {
+    console.log(error);
+    toast.error('Error al crear la orden de envío: ' + 
+      (error.response?.data?.message || 'Intenta nuevamente'));
+  } finally {
+    setPaymentProcessing(false);
+    hideSpinner();
+  }
+};
+
+// Función para manejar el clic en "Requerir Pago de Envío"
+const handleRequirePayment = () => {
+  setShowPaymentModal(true);
+};
+
+// Función para manejar la confirmación del pago
+const handlePaymentConfirmation = async (paymentData) => {
+  try {
+    let paymentDataWithBase64 = { ...paymentData };
+    
+    // Convertir archivo a base64 si existe
+    if (paymentData.comprobantePago) {
+      const base64 = await convertFileToBase64(paymentData.comprobantePago);
+      paymentDataWithBase64 = {
+        numeroTransferencia: paymentData.numeroTransferencia,
+        fechaPago: paymentData.fechaPago,
+        horaPago: paymentData.horaPago,
+        bancoEmisor: paymentData.bancoEmisor,
+        comprobanteBase64: base64,
+        comprobanteNombre: paymentData.comprobantePago.name,
+      };
+    } else {
+      // Si no hay archivo, solo pasar los datos básicos
+      paymentDataWithBase64 = {
+        numeroTransferencia: paymentData.numeroTransferencia,
+        fechaPago: paymentData.fechaPago,
+        horaPago: paymentData.horaPago,
+        bancoEmisor: paymentData.bancoEmisor,
+      };
+    }
+    
+    crearOrdenEnvio(paymentDataWithBase64);
+  } catch (error) {
+    toast.error('Error al procesar el comprobante');
+    console.error(error);
+  }
+};
+
 
   const caracasCoordinates = {
     lat: 10.4806,
@@ -323,6 +403,13 @@ export default function Hero() {
 
   return (
     <>
+    <PaymentInfoModal
+  isOpen={showPaymentModal}
+  onClose={() => setShowPaymentModal(false)}
+  onConfirmPayment={handlePaymentConfirmation}
+  totalAmount={resultData?.totalAPagar}
+  isLoading={paymentProcessing}
+/>
       <Dialog size="lg" open={ModalResult} onClose={setModalResult}>
 {avisoEnvio ? (
   <div className="p-4 sm:p-6">
@@ -457,25 +544,22 @@ export default function Hero() {
       
       {/* Botón de acción */}
       <div className="mt-4 sm:mt-6">
-        {user ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              crearOrdenEnvio();
-            }}
-            className="w-full text-center rounded-md bg-blue-600 py-2 sm:py-3 px-4 text-sm sm:text-base text-white font-medium hover:bg-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shadow-sm"
-          >
-            Requerir Pago de Envío
-          </button>
-        ) : (
-          <Link
-            href={`/register`}
-            className="block w-full text-center rounded-md bg-blue-600 py-2 sm:py-3 px-4 text-sm sm:text-base text-white font-medium hover:bg-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shadow-sm"
-          >
-            Registrate Para Pagar
-          </Link>
-        )}
+  {user ? (
+  <button
+    type="button"
+    onClick={handleRequirePayment}
+    className="w-full text-center rounded-md bg-blue-600 py-2 sm:py-3 px-4 text-sm sm:text-base text-white font-medium hover:bg-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shadow-sm"
+  >
+    Requerir Pago de Envío
+  </button>
+) : (
+  <Link
+    href={`/register`}
+    className="block w-full text-center rounded-md bg-blue-600 py-2 sm:py-3 px-4 text-sm sm:text-base text-white font-medium hover:bg-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shadow-sm"
+  >
+    Registrate Para Pagar
+  </Link>
+)}
       </div>
     </div>
   </div>
