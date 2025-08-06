@@ -23,29 +23,26 @@ export function Dialog({ size = 'lg', className, children, ...props }) {
         className="fixed inset-0 bg-zinc-950/25 transition duration-100 focus:outline-0 data-closed:opacity-0 data-enter:ease-out data-leave:ease-in z-40"
       />
 
-      <div className="fixed inset-0 z-50">
-        <div className="flex min-h-full items-center justify-center p-0 sm:p-4">
+      <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-4">
           <Headless.DialogPanel
             transition
             className={clsx(
               className,
               sizes[size],
-              // Móviles: pantalla completa con scroll interno
-              'h-full w-full bg-white shadow-lg ring-1 ring-zinc-950/10',
-              // Desktop: modal centrado con tamaño limitado
-              'sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:shadow-xl',
+              // Móviles: modal desde abajo, altura automática con max-height
+              'w-full max-h-[100vh] bg-white shadow-lg ring-1 ring-zinc-950/10',
+              // Bordes redondeados solo arriba en móvil, completos en desktop
+              'rounded-t-3xl sm:rounded-2xl',
+              // Desktop: centrado con altura máxima
+              'sm:max-h-[90vh] sm:w-full sm:max-w-lg',
               // Animaciones
-              'transition duration-200 will-change-transform',
-              'data-closed:translate-y-full data-closed:opacity-0 data-enter:ease-out data-leave:ease-in',
-              'sm:data-closed:translate-y-0 sm:data-closed:scale-95',
-              // Overflow handling
-              'overflow-hidden flex flex-col'
+              'transform transition-all duration-200 ease-out',
+              'data-closed:translate-y-full data-closed:opacity-0',
+              'sm:data-closed:translate-y-0 sm:data-closed:scale-95'
             )}
           >
-            {/* Contenedor con scroll interno */}
-            <div className="flex-1 overflow-y-auto overscroll-contain">
-              {children}
-            </div>
+            {children}
           </Headless.DialogPanel>
         </div>
       </div>
