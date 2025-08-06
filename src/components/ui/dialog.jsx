@@ -1,7 +1,5 @@
-import * as Headless from '@headlessui/react'
-import clsx from 'clsx'
-
-import { Text } from './text'
+import React, { useEffect } from 'react';
+import clsx from 'clsx';
 
 const sizes = {
   xs: 'sm:max-w-xs',
@@ -13,66 +11,121 @@ const sizes = {
   '3xl': 'sm:max-w-3xl',
   '4xl': 'sm:max-w-4xl',
   '5xl': 'sm:max-w-5xl',
-}
+};
 
-export function Dialog({ size = 'lg', className, children, ...props }) {
+export function Dialog({ size = 'lg', className, children, open, onClose, ...props }) {
+  // Manejar el scroll del body
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
+  // Manejar tecla Escape
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && open) {
+        onClose(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
   return (
-    <Headless.Dialog {...props}>
-      <Headless.DialogBackdrop
-        transition
-        className="fixed inset-0 bg-zinc-950/25 transition duration-100 focus:outline-0 data-closed:opacity-0 data-enter:ease-out data-leave:ease-in z-[9990]"
+    <div className="fixed inset-0" style={{ zIndex: 9980 }}>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-zinc-950/25 transition-opacity duration-200"
+        onClick={() => onClose(false)}
+        aria-hidden="true"
       />
 
-      <div className="fixed inset-0 z-[9991] overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+      {/* Modal Container */}
+      <div 
+        className="fixed inset-0 overflow-y-auto" 
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-4">
-          <Headless.DialogPanel
-            transition
+          <div
             className={clsx(
               className,
               sizes[size],
-              // Móviles: modal desde abajo con altura segura
-              'w-full max-h-[95vh] bg-white shadow-lg ring-1 ring-zinc-950/10',
-              // Bordes redondeados solo arriba en móvil, completos en desktop
+              // Móviles: modal desde abajo
+              'relative w-full max-h-[95vh] bg-white shadow-xl ring-1 ring-zinc-950/10',
+              // Bordes redondeados
               'rounded-t-3xl sm:rounded-2xl',
-              // Desktop: centrado con altura máxima
+              // Desktop: tamaño máximo
               'sm:max-h-[90vh] sm:w-full sm:max-w-lg',
-              // Importante: overflow para scroll interno
-              'overflow-hidden flex flex-col',
-              // Animaciones
-              'transform transition-all duration-200 ease-out',
-              'data-closed:translate-y-full data-closed:opacity-0',
-              'sm:data-closed:translate-y-0 sm:data-closed:scale-95'
+              // Layout flex para scroll interno
+              'flex flex-col overflow-hidden',
+              // Transición
+              'transform transition-all duration-200 ease-out'
             )}
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Contenedor con scroll interno */}
-            <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {/* Contenido con scroll */}
+            <div 
+              className="flex-1 overflow-y-auto" 
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               {children}
             </div>
-          </Headless.DialogPanel>
+          </div>
         </div>
       </div>
-    </Headless.Dialog>
-  )
+    </div>
+  );
 }
 
-export function DialogTitle({ className, ...props }) {
+export function DialogTitle({ className, children, ...props }) {
   return (
-    <Headless.DialogTitle
+    <h2
       {...props}
-      className={clsx(className, 'text-lg/6 font-semibold text-balance text-zinc-950 sm:text-base/6')}
-    />
-  )
+      className={clsx(
+        className, 
+        'text-lg/6 font-semibold text-balance text-zinc-950 sm:text-base/6'
+      )}
+    >
+      {children}
+    </h2>
+  );
 }
 
-export function DialogDescription({ className, ...props }) {
-  return <Headless.Description as={Text} {...props} className={clsx(className, 'mt-2 text-pretty')} />
+export function DialogDescription({ className, children, ...props }) {
+  return (
+    <p 
+      {...props} 
+      className={clsx(className, 'mt-2 text-pretty text-sm text-zinc-600')}
+    >
+      {children}
+    </p>
+  );
 }
 
-export function DialogBody({ className, ...props }) {
-  return <div {...props} className={clsx(className, 'mt-6')} />
+export function DialogBody({ className, children, ...props }) {
+  return (
+    <div {...props} className={clsx(className, 'mt-6')}>
+      {children}
+    </div>
+  );
 }
 
-export function DialogActions({ className, ...props }) {
+export function DialogActions({ className, children, ...props }) {
   return (
     <div
       {...props}
@@ -80,6 +133,8 @@ export function DialogActions({ className, ...props }) {
         className,
         'mt-8 flex flex-col-reverse items-center justify-end gap-3 *:w-full sm:flex-row sm:*:w-auto'
       )}
-    />
-  )
+    >
+      {children}
+    </div>
+  );
 }
