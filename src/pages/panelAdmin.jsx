@@ -1,6 +1,6 @@
 import Modal from '@/components/Modal';
 import apiService from '@/services/apiService';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
 function classNames(...classes) {
@@ -16,65 +16,204 @@ export default function panelAdmin() {
   const [searchTracking, setSearchTracking] = useState('');
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
-
+const [appliedFilterStatus, setAppliedFilterStatus] = useState('');
   // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const [loading, setLoading] = useState(false);
+const searchTimeoutRef = useRef(null);
+  // Estados REALES que existen en la base de datos
+const realDatabaseStates = [
+  'Por Confirmar',
+  'Pendiente de Verificación', 
+  'Confirmado',
+  'En Proceso',
+  'Finalizado'
+];
+
+  // Mapeo de estados - mostrar nombres amigables pero usar valores reales de BD
+const statusDisplayMapping = {
+  'Por Confirmar': 'Por Confirmar Pago',
+  'Pendiente de Verificación': 'Pendiente de Verificación',
+  'Confirmado': 'Pago Confirmado',
+  'En Proceso': 'En Proceso de Envío',
+  'En Tránsito': 'En Tránsito',
+  'Entregado': 'Entregado',
+  'Finalizado': 'Finalizado'
+};
+
+// Mapeo inverso: nombre_amigable -> valor_real (para los filtros)
+const statusValueMapping = {
+  'Por Confirmar Pago': 'Por Confirmar',
+  'Pendiente de Verificación': 'Pendiente de Verificación',
+  'Pago Confirmado': 'Confirmado',
+  'En Proceso de Envío': 'En Proceso',
+  'En Tránsito': 'En Tránsito',
+  'Entregado': 'Entregado',
+  'Finalizado': 'Finalizado'
+};
+
+
+  // Función para obtener estados disponibles - solo los que realmente existen
+  const getAvailableStatuses = () => {
+    return realDatabaseStates;
+  };
 
   // Función para obtener órdenes con paginación
-  const getOrders = async (page = 1, limit = itemsPerPage) => {
-    try {
-      setLoading(true);
-      const params = {
-        page,
-        limit,
-        ...(filterStatus && { status: filterStatus }),
-        ...(searchTracking && { trackingNumber: searchTracking }),
-      };
-      
-      const [ordersData, total] = await apiService.get('/envios/all', { params });
-      setDataUser(ordersData);
-      setTotalOrders(total);
-      setCurrentPage(page);
-      
-      console.log(`📋 Página ${page}: ${ordersData.length} órdenes de ${total} total`);
-    } catch (err) {
-      toast.error('Error al cargar las órdenes');
-      console.error(err);
-    } finally {
-      setLoading(false);
+// Función mejorada para obtener órdenes
+const getOrders = async (page = 1, limit = itemsPerPage, filters = {}) => {
+  try {
+    setLoading(true);
+    setAppliedFilterStatus(filters.status || '');
+    console.log('🔍 Buscando con filtros:', { page, limit, ...filters });
+    
+    // Construir parámetros de manera más robusta
+    const params = new URLSearchParams();
+    
+    // Parámetros básicos
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+
+    // Filtros - enviar solo si tienen valor y están limpios
+    if (filters.status && filters.status.trim()) {
+      const cleanStatus = filters.status.trim();
+      params.append('status', cleanStatus);
+      console.log('🔍 Filtro de status enviado:', cleanStatus);
     }
-  };
+    
+    if (filters.trackingNumber && filters.trackingNumber.trim()) {
+      const cleanTracking = filters.trackingNumber.trim();
+      params.append('trackingNumber', cleanTracking);
+      console.log('🔍 Filtro de tracking enviado:', cleanTracking);
+    }
+
+    const url = `/envios/all?${params.toString()}`;
+    console.log('📡 URL de búsqueda completa:', url);
+    
+    const response = await apiService.get(url);
+    console.log('📥 Respuesta completa de la API:', response);
+    
+    // Manejar el formato específico de respuesta: [[data], total]
+    let ordersData, total;
+    
+    if (Array.isArray(response) && response.length === 2) {
+      const [dataArray, totalCount] = response;
+      if (Array.isArray(dataArray)) {
+        ordersData = dataArray;
+        total = totalCount || dataArray.length;
+      } else {
+        ordersData = Array.isArray(response[0]) ? response[0] : response;
+        total = response[1] || ordersData.length;
+      }
+    } else if (Array.isArray(response)) {
+      ordersData = response;
+      total = response.length;
+    } else if (response.data && Array.isArray(response.data)) {
+      ordersData = response.data;
+      total = response.total || response.data.length;
+    } else {
+      ordersData = response.orders || response.data || [];
+      total = response.total || ordersData.length;
+    }
+
+    console.log('📋 Datos procesados:', { 
+      ordersData: ordersData.length, 
+      total,
+      estadosEncontrados: [...new Set(ordersData.map(order => order.status))]
+    });
+    
+    // Verificar que ordersData sea un array válido
+    if (!Array.isArray(ordersData)) {
+      console.error('❌ ordersData no es un array:', ordersData);
+      ordersData = [];
+      total = 0;
+    }
+
+    setDataUser(ordersData);
+    setTotalOrders(total);
+    setCurrentPage(page);
+    
+    console.log(`📋 Página ${page}: ${ordersData.length} órdenes de ${total} total`);
+  } catch (err) {
+    console.error('❌ Error al cargar órdenes:', err);
+    toast.error('Error al cargar las órdenes: ' + (err.message || 'Error desconocido'));
+    setDataUser([]);
+    setTotalOrders(0);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Función para cambiar página
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= Math.ceil(totalOrders / itemsPerPage)) {
-      getOrders(newPage, itemsPerPage);
+      const filters = {
+        status: filterStatus,
+        trackingNumber: searchTracking
+      };
+      getOrders(newPage, itemsPerPage, filters);
     }
   };
 
-  // Función para cambiar filtros (reinicia a página 1)
-  const handleFilterChange = () => {
-    getOrders(1, itemsPerPage);
+  // Función para aplicar filtros (reinicia a página 1)
+const applyFilters = () => {
+  const filters = {
+    status: filterStatus, // Este ya debe ser el valor real de BD
+    trackingNumber: searchTracking
   };
+  console.log('🔧 Aplicando filtros con valores REALES de BD:', filters);
+  console.log('🔧 filterStatus (valor real):', filterStatus);
+  getOrders(1, itemsPerPage, filters);
+};
 
-  // Función para búsqueda con debounce
-  const handleSearchChange = (e) => {
-    setSearchTracking(e.target.value);
-    // Buscar después de una pausa (debounce)
-    clearTimeout(window.searchTimeout);
-    window.searchTimeout = setTimeout(() => {
-      handleFilterChange();
-    }, 500);
-  };
 
-  // Función para filtro de status
-  const handleStatusFilterChange = (e) => {
-    setFilterStatus(e.target.value);
-    handleFilterChange();
+  // Función para búsqueda con debounce mejorado
+const handleSearchChange = (e) => {
+  const value = e.target.value;
+  setSearchTracking(value);
+  
+  console.log('🔍 Búsqueda instantánea para:', value);
+  
+  const filters = {
+    status: filterStatus,
+    trackingNumber: value
   };
+  getOrders(1, itemsPerPage, filters);
+};
+
+  // Función para filtro de status mejorado con debug
+const handleStatusFilterChange = (e) => {
+  const selectedValue = e.target.value;
+  
+  console.log('📊 Valor real seleccionado:', selectedValue);
+  
+  // Actualizar inmediatamente el estado
+  setFilterStatus(selectedValue);
+  
+  // Aplicar filtro SIN delay
+  const filters = {
+    status: selectedValue,
+    trackingNumber: searchTracking
+  };
+  console.log('🔧 Aplicando filtros inmediatamente:', filters);
+  getOrders(1, itemsPerPage, filters);
+};
+
+  // Función para limpiar filtros
+const clearFilters = () => {
+  setFilterStatus('');
+  setSearchTracking('');
+  setAppliedFilterStatus('');
+  
+  // Agregar limpieza del timeout para Next.js
+  if (searchTimeoutRef.current) {
+    clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = null;
+  }
+  
+  getOrders(1, itemsPerPage, {});
+};
 
   const handleUpdateOrderStatus = async () => {
     try {
@@ -87,7 +226,13 @@ export default function panelAdmin() {
       console.log(response);
       toast.success('Estado actualizado correctamente');
       setOpen(false);
-      getOrders(currentPage, itemsPerPage); // Recargar página actual
+      
+      // Recargar con filtros actuales
+      const filters = {
+        status: filterStatus,
+        trackingNumber: searchTracking
+      };
+      getOrders(currentPage, itemsPerPage, filters);
     } catch (error) {
       toast.error('Error al actualizar el estado de la orden');
       console.error(error);
@@ -101,7 +246,13 @@ export default function panelAdmin() {
       await apiService.delete(`/envios/${selectedUser.id}`);
       toast.success('Orden eliminada con éxito');
       setOpen(false);
-      getOrders(currentPage, itemsPerPage); // Recargar página actual
+      
+      // Recargar con filtros actuales
+      const filters = {
+        status: filterStatus,
+        trackingNumber: searchTracking
+      };
+      getOrders(currentPage, itemsPerPage, filters);
     } catch (error) {
       toast.error('Error al eliminar la orden');
       console.error(error);
@@ -109,10 +260,7 @@ export default function panelAdmin() {
   };
 
   const viewComprobante = (imagePath) => {
-    // Método más directo y seguro
     let imageUrl = `https://tabghalmaca.com/${imagePath}`;
-    
-    // Reemplazar cualquier doble barra con una sola barra (excepto en https://)
     imageUrl = imageUrl.replace(/([^:]\/)\/+/g, '$1');
     
     console.log('🖼️ Ruta original:', imagePath);
@@ -123,16 +271,16 @@ export default function panelAdmin() {
   };
 
   useEffect(() => {
-    getOrders(1, itemsPerPage);
+    getOrders(1, itemsPerPage, {});
   }, []);
 
   const handleEditClick = (user) => {
     setSelectedUser(user);
-    setStatus(user.status); // Pre-seleccionar el status actual
+    setStatus(user.status);
     setOpen(true);
   };
 
-  // Función para obtener el color del status
+  // Función para obtener el color del status con estados reales
   const getStatusColor = (status) => {
     switch (status) {
       case 'Por Confirmar':
@@ -150,9 +298,20 @@ export default function panelAdmin() {
       case 'Finalizado':
         return 'bg-green-100 text-green-800';
       default:
+        console.warn('⚠️ Estado desconocido:', status);
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+const getStatusDisplayName = (realStatus) => {
+  return statusDisplayMapping[realStatus] || realStatus;
+};
+
+// Función para obtener el valor real de BD a partir del nombre amigable
+const getRealStatusValue = (displayName) => {
+  return statusValueMapping[displayName] || displayName;
+};
+
 
   // Calcular información de paginación
   const totalPages = Math.ceil(totalOrders / itemsPerPage);
@@ -188,16 +347,16 @@ export default function panelAdmin() {
                     <div>
                       <dt className="font-medium text-gray-700">Nombre</dt>
                       <dd className="text-gray-600">
-                        {selectedUser.user.firstName} {selectedUser.user.lastName}
+                        {selectedUser.user?.firstName || 'N/A'} {selectedUser.user?.lastName || ''}
                       </dd>
                     </div>
                     <div>
                       <dt className="font-medium text-gray-700">Teléfono</dt>
-                      <dd className="text-gray-600">{selectedUser.user.phone}</dd>
+                      <dd className="text-gray-600">{selectedUser.user?.phone || 'N/A'}</dd>
                     </div>
                     <div className="col-span-2">
                       <dt className="font-medium text-gray-700">Email</dt>
-                      <dd className="text-gray-600">{selectedUser.user.email}</dd>
+                      <dd className="text-gray-600">{selectedUser.user?.email || 'N/A'}</dd>
                     </div>
                   </div>
                 </div>
@@ -231,7 +390,7 @@ export default function panelAdmin() {
                   </div>
                 </div>
 
-                {/* Información de pago - Solo mostrar si tiene datos de pago */}
+                {/* Información de pago */}
                 {selectedUser.numeroTransferencia && (
                   <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
                     <h3 className="font-medium text-green-900 mb-3">
@@ -282,20 +441,21 @@ export default function panelAdmin() {
                     Actualizar Status
                   </label>
                   <select
-                    id="status"
-                    name="status"
-                    className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    <option value="Por Confirmar">Por Confirmar</option>
-                    <option value="Pendiente de Verificación">Pendiente de Verificación</option>
-                    <option value="Confirmado">Confirmado</option>
-                    <option value="En Proceso">En Proceso</option>
-                    <option value="En Tránsito">En Tránsito</option>
-                    <option value="Entregado">Entregado</option>
-                    <option value="Finalizado">Finalizado</option>
-                  </select>
+    id="status"
+    name="status"
+    className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
+    value={status} // Este debe ser el valor REAL de BD
+    onChange={(e) => setStatus(e.target.value)} // Guardar valor REAL
+  >
+    {/* Usar valores REALES de BD, pero mostrar nombres amigables */}
+    <option value="Por Confirmar">Por Confirmar Pago</option>
+    <option value="Pendiente de Verificación">Pendiente de Verificación</option>
+    <option value="Confirmado">Pago Confirmado</option>
+    <option value="En Proceso">En Proceso de Envío</option>
+    <option value="En Tránsito">En Tránsito</option>
+    <option value="Entregado">Entregado</option>
+    <option value="Finalizado">Finalizado</option>
+  </select>
                 </div>
               </dl>
             </div>
@@ -329,9 +489,6 @@ export default function panelAdmin() {
           </h3>
           {selectedImage && (
             <div>
-              <p className="text-xs text-gray-500 mb-2 break-all">
-                URL: {selectedImage}
-              </p>
               <img
                 src={selectedImage}
                 alt="Comprobante de pago"
@@ -342,7 +499,6 @@ export default function panelAdmin() {
                 onError={(e) => {
                   console.error('❌ Error al cargar imagen:', selectedImage);
                   toast.error(`No se pudo cargar la imagen: ${selectedImage}`);
-                  // No cambiar src a placeholder para debugging
                 }}
               />
             </div>
@@ -370,25 +526,32 @@ export default function panelAdmin() {
             <div className="flex gap-4 mb-4">
               <input
                 type="text"
-                placeholder="Buscar por Tracking"
+                placeholder="Buscar por Tracking Number"
                 value={searchTracking}
                 onChange={handleSearchChange}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
               />
-              <select
-                value={filterStatus}
-                onChange={handleStatusFilterChange}
-                className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
+     <select
+  value={filterStatus}
+  onChange={handleStatusFilterChange}
+  className={`block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 ${
+    loading ? 'opacity-50 cursor-not-allowed' : ''
+  }`}
+  disabled={loading}
+>
+  <option value="">Todos los status</option>
+  <option value="Por Confirmar">Por Confirmar Pago</option>
+  <option value="Pendiente de Verificación">Pendiente de Verificación</option>
+  <option value="Confirmado">Pago Confirmado</option>
+  <option value="En Proceso">En Proceso de Envío</option>
+  <option value="Finalizado">Finalizado</option>
+</select>
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 whitespace-nowrap"
               >
-                <option value="">Todos los status</option>
-                <option value="Por Confirmar">Por Confirmar</option>
-                <option value="Pendiente de Verificación">Pendiente de Verificación</option>
-                <option value="Confirmado">Confirmado</option>
-                <option value="En Proceso">En Proceso</option>
-                <option value="En Tránsito">En Tránsito</option>
-                <option value="Entregado">Entregado</option>
-                <option value="Finalizado">Finalizado</option>
-              </select>
+                Limpiar Filtros
+              </button>
             </div>
           </div>
         </div>
@@ -426,20 +589,26 @@ export default function panelAdmin() {
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {dataUser.map((person, personIdx) => (
+                  {dataUser.length > 0 ? dataUser.map((person, personIdx) => (
                     <tr key={person.id} className={person.status === 'Pendiente de Verificación' ? 'bg-orange-50' : ''}>
                       <td className={classNames(
                         personIdx !== dataUser.length - 1 ? 'border-b border-gray-200' : '',
                         'whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 lg:pl-8'
                       )}>
-                        {person.user.firstName} {person.user.lastName}
-                        <div className="text-xs text-gray-500">{person.user.phone}</div>
+                        {person.user ? (
+                          <>
+                            {person.user.firstName} {person.user.lastName}
+                            <div className="text-xs text-gray-500">{person.user.phone}</div>
+                          </>
+                        ) : (
+                          <span className="text-red-500">Usuario no disponible</span>
+                        )}
                       </td>
                       <td className={classNames(
                         personIdx !== dataUser.length - 1 ? 'border-b border-gray-200' : '',
                         'whitespace-nowrap px-3 py-4 text-sm text-gray-500'
                       )}>
-                        {person.user.email}
+                        {person.user?.email || 'N/A'}
                       </td>
                       <td className={classNames(
                         personIdx !== dataUser.length - 1 ? 'border-b border-gray-200' : '',
@@ -458,7 +627,7 @@ export default function panelAdmin() {
                         'whitespace-nowrap px-3 py-4 text-sm'
                       )}>
                         <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(person.status)}`}>
-                          {person.status}
+                          {getStatusDisplayName(person.status)}
                         </span>
                       </td>
                       <td className={classNames(
@@ -500,7 +669,13 @@ export default function panelAdmin() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan="8" className="py-8 text-center text-gray-500">
+                        {loading ? 'Cargando...' : 'No hay órdenes para mostrar'}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -540,11 +715,14 @@ export default function panelAdmin() {
                 onChange={(e) => {
                   const newLimit = parseInt(e.target.value);
                   setItemsPerPage(newLimit);
-                  getOrders(1, newLimit);
+                  const filters = {
+                    status: filterStatus,
+                    trackingNumber: searchTracking
+                  };
+                  getOrders(1, newLimit, filters);
                 }}
                 className="rounded-md border-gray-300 text-sm"
               >
-                <option value={25}>25 por página</option>
                 <option value={50}>50 por página</option>
                 <option value={100}>100 por página</option>
               </select>
