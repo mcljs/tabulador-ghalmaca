@@ -30,19 +30,24 @@ export function Dialog({ size = 'lg', className, children, ...props }) {
             className={clsx(
               className,
               sizes[size],
-              // Móviles: modal desde abajo, altura automática con max-height
-              'w-full max-h-[100vh] bg-white shadow-lg ring-1 ring-zinc-950/10',
+              // Móviles: modal desde abajo con altura segura
+              'w-full max-h-[95vh] bg-white shadow-lg ring-1 ring-zinc-950/10',
               // Bordes redondeados solo arriba en móvil, completos en desktop
               'rounded-t-3xl sm:rounded-2xl',
               // Desktop: centrado con altura máxima
               'sm:max-h-[90vh] sm:w-full sm:max-w-lg',
+              // Importante: overflow para scroll interno
+              'overflow-hidden flex flex-col',
               // Animaciones
               'transform transition-all duration-200 ease-out',
               'data-closed:translate-y-full data-closed:opacity-0',
               'sm:data-closed:translate-y-0 sm:data-closed:scale-95'
             )}
           >
-            {children}
+            {/* Contenedor con scroll interno */}
+            <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {children}
+            </div>
           </Headless.DialogPanel>
         </div>
       </div>
