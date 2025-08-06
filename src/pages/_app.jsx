@@ -87,20 +87,23 @@ function MyApp({ Component, pageProps }) {
               <ToastProvider autoDismiss autoDismissTimeout={2000}>
               <AuthProvider>
                 <div className="font-primary break-all">
-                  <Toaster
-                    position="top-right"
-                    toastOptions={{
-                      style: {
-                        background: '#000',
-                        color: '#fff',
-                        zIndex: 999999999999999,
-                      },
-                      iconTheme: {
-                        primary: '#0ea5e9',
-                        secondary: '#fff',
-                      },
-                    }}
-                  />
+               <Toaster
+  position="top-right"
+  containerStyle={{
+    zIndex: 999999999999999, // Z-index del contenedor
+  }}
+  toastOptions={{
+    style: {
+      background: '#000',
+      color: '#fff',
+      zIndex: 999999999999999, // Z-index del toast individual
+    },
+    iconTheme: {
+      primary: '#0ea5e9',
+      secondary: '#fff',
+    },
+  }}
+/>
                 </div>
 
                 <Navbar />

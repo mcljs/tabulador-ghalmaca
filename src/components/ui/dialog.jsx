@@ -20,10 +20,10 @@ export function Dialog({ size = 'lg', className, children, ...props }) {
     <Headless.Dialog {...props}>
       <Headless.DialogBackdrop
         transition
-        className="fixed inset-0 bg-zinc-950/25 transition duration-100 focus:outline-0 data-closed:opacity-0 data-enter:ease-out data-leave:ease-in z-40"
+        className="fixed inset-0 bg-zinc-950/25 transition duration-100 focus:outline-0 data-closed:opacity-0 data-enter:ease-out data-leave:ease-in z-[9990]"
       />
 
-      <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="fixed inset-0 z-[9991] overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-4">
           <Headless.DialogPanel
             transition

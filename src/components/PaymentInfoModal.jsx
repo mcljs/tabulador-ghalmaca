@@ -162,7 +162,7 @@ const PaymentInfoModal = ({
   };
 
   return (
-    <div className={`${isOpen ? 'block' : 'hidden'} fixed inset-0`} style={{ zIndex: 60 }}>
+    <div className={`${isOpen ? 'block' : 'hidden'} fixed inset-0`} style={{ zIndex: 10000 }}>
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/50" 
