@@ -229,17 +229,17 @@ const PaymentInfoModal = ({
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Número de transferencia */}
+                  {/* Número de Referencia */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Número de Transferencia *
+                      Número de Referencia *
                     </label>
                     <input
                       type="text"
                       required
                       value={paymentData.numeroTransferencia}
                       onChange={(e) => handleInputChange('numeroTransferencia', e.target.value)}
-                      placeholder="Ej: 123456789"
+                      placeholder="Ultimos 8 Digitos"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       disabled={isLoading}
                     />
@@ -359,7 +359,7 @@ const PaymentInfoModal = ({
                   <div className="bg-yellow-50 p-4 rounded-lg">
                     <p className="text-sm text-yellow-800">
                       <strong>Importante:</strong> Una vez enviada esta información, nuestro equipo 
-                      verificará el pago y se pondrá en contacto contigo para coordinar el envío. 
+                      verificará el pago y se pondrá en contacto con usted para coordinar el envío. 
                       Este proceso puede tomar entre 2-4 horas hábiles.
                     </p>
                   </div>

@@ -239,7 +239,7 @@ export default function panelAdmin() {
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <dt className="font-medium text-green-700">Número de Transferencia</dt>
+                        <dt className="font-medium text-green-700">Número de Referencia</dt>
                         <dd className="text-green-800 font-mono">
                           {selectedUser.numeroTransferencia}
                         </dd>
