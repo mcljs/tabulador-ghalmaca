@@ -109,8 +109,15 @@ export default function panelAdmin() {
   };
 
   const viewComprobante = (imagePath) => {
-    // Construir la URL completa de la imagen
-    const imageUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://tabghalmaca.com'}/${imagePath}`;
+    // Método más directo y seguro
+    let imageUrl = `https://tabghalmaca.com/${imagePath}`;
+    
+    // Reemplazar cualquier doble barra con una sola barra (excepto en https://)
+    imageUrl = imageUrl.replace(/([^:]\/)\/+/g, '$1');
+    
+    console.log('🖼️ Ruta original:', imagePath);
+    console.log('🖼️ URL final construida:', imageUrl);
+    
     setSelectedImage(imageUrl);
     setShowImageModal(true);
   };
@@ -321,15 +328,24 @@ export default function panelAdmin() {
             Comprobante de Pago
           </h3>
           {selectedImage && (
-            <img
-              src={selectedImage}
-              alt="Comprobante de pago"
-              className="max-w-full max-h-96 mx-auto rounded-lg shadow-lg"
-              onError={(e) => {
-                e.target.src = '/placeholder-image.png';
-                toast.error('No se pudo cargar la imagen');
-              }}
-            />
+            <div>
+              <p className="text-xs text-gray-500 mb-2 break-all">
+                URL: {selectedImage}
+              </p>
+              <img
+                src={selectedImage}
+                alt="Comprobante de pago"
+                className="max-w-full max-h-96 mx-auto rounded-lg shadow-lg"
+                onLoad={() => {
+                  console.log('✅ Imagen cargada correctamente:', selectedImage);
+                }}
+                onError={(e) => {
+                  console.error('❌ Error al cargar imagen:', selectedImage);
+                  toast.error(`No se pudo cargar la imagen: ${selectedImage}`);
+                  // No cambiar src a placeholder para debugging
+                }}
+              />
+            </div>
           )}
           <button
             onClick={() => setShowImageModal(false)}

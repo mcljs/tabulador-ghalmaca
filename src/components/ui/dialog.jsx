@@ -20,21 +20,32 @@ export function Dialog({ size = 'lg', className, children, ...props }) {
     <Headless.Dialog {...props}>
       <Headless.DialogBackdrop
         transition
-        className="fixed inset-0 flex w-screen justify-center overflow-y-auto bg-zinc-950/25 px-2 py-2 transition duration-100 focus:outline-0 data-closed:opacity-0 data-enter:ease-out data-leave:ease-in sm:px-6 sm:py-8 lg:px-8 lg:py-16"
+        className="fixed inset-0 bg-zinc-950/25 transition duration-100 focus:outline-0 data-closed:opacity-0 data-enter:ease-out data-leave:ease-in z-40"
       />
 
-      <div className="fixed inset-0 w-screen overflow-y-auto pt-6 sm:pt-0">
-        <div className="grid min-h-full grid-rows-[1fr_auto] justify-items-center sm:grid-rows-[1fr_auto_3fr] sm:p-4">
+      <div className="fixed inset-0 z-50">
+        <div className="flex min-h-full items-center justify-center p-0 sm:p-4">
           <Headless.DialogPanel
             transition
             className={clsx(
               className,
               sizes[size],
-              'row-start-2 w-full min-w-0 rounded-t-3xl bg-white p-(--gutter) shadow-lg ring-1 ring-zinc-950/10 [--gutter:--spacing(8)] sm:mb-auto sm:rounded-2xl forced-colors:outline',
-              'transition duration-100 will-change-transform data-closed:translate-y-12 data-closed:opacity-0 data-enter:ease-out data-leave:ease-in sm:data-closed:translate-y-0 sm:data-closed:data-enter:scale-95'
+              // Móviles: pantalla completa con scroll interno
+              'h-full w-full bg-white shadow-lg ring-1 ring-zinc-950/10',
+              // Desktop: modal centrado con tamaño limitado
+              'sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:shadow-xl',
+              // Animaciones
+              'transition duration-200 will-change-transform',
+              'data-closed:translate-y-full data-closed:opacity-0 data-enter:ease-out data-leave:ease-in',
+              'sm:data-closed:translate-y-0 sm:data-closed:scale-95',
+              // Overflow handling
+              'overflow-hidden flex flex-col'
             )}
           >
-            {children}
+            {/* Contenedor con scroll interno */}
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+              {children}
+            </div>
           </Headless.DialogPanel>
         </div>
       </div>
