@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import clsx from 'clsx';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 
 const sizes = {
   xs: 'sm:max-w-xs',
@@ -13,7 +14,7 @@ const sizes = {
   '5xl': 'sm:max-w-5xl',
 };
 
-export function Dialog({ size = 'lg', className, children, open, onClose, ...props }) {
+export function Dialog({ size = 'lg', className, children, open, onClose, showCloseButton = true, ...props }) {
   // Manejar el scroll del body
   useEffect(() => {
     if (open) {
@@ -78,6 +79,17 @@ export function Dialog({ size = 'lg', className, children, open, onClose, ...pro
             )}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Botón de cerrar - visible en móviles, opcional en desktop */}
+            {showCloseButton && (
+              <button
+                onClick={() => onClose(false)}
+                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-lg hover:bg-white/90 transition-all duration-200 sm:bg-transparent sm:shadow-none sm:hover:bg-gray-100"
+                aria-label="Cerrar modal"
+              >
+                <XMarkIcon className="h-5 w-5 text-gray-600 hover:text-gray-800" />
+              </button>
+            )}
+
             {/* Contenido con scroll */}
             <div 
               className="flex-1 overflow-y-auto" 
